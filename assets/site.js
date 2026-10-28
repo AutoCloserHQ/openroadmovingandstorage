@@ -31,7 +31,10 @@
     form.querySelector('[data-next]').addEventListener('click', () => { if (validCurrent()) showStep(current + 1); });
     form.querySelector('[data-back]').addEventListener('click', () => showStep(Math.max(0, current - 1)));
     form.addEventListener('keydown', event => { if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA' && event.target.tagName !== 'BUTTON' && current < sections.length - 1) { event.preventDefault(); if (validCurrent()) showStep(current + 1); } });
-    form.addEventListener('submit', event => {
+    let sending = false;
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (sending || form.dataset.submitted === 'true') return;
       if (current !== sections.length - 1) { event.preventDefault(); if (validCurrent()) showStep(current + 1); return; }
       sections.forEach(section => { section.disabled = false; });
       if (!form.checkValidity()) {
@@ -42,9 +45,43 @@
         firstInvalid?.reportValidity();
         return;
       }
-      // FormSubmit owns spam verification and delivery; do not show a client-only success.
+      const submit = form.querySelector('[data-submit]');
+      const back = form.querySelector('[data-back]');
+      sending = true;
+      submit.disabled = true;
+      back.disabled = true;
+      submit.textContent = 'Sending…';
       status.hidden = false;
-      status.textContent = 'Opening secure verification. Complete the next screen to send your request.';
+      status.setAttribute('role', 'status');
+      status.textContent = 'Sending your quote request…';
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      try {
+        const payload = Object.fromEntries(new FormData(form));
+        const response = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        const result = await response.json();
+        if (!response.ok || result.success !== true) throw new Error('Submission was not confirmed');
+        form.dataset.submitted = 'true';
+        sections.forEach(section => { section.disabled = true; });
+        back.hidden = true;
+        submit.textContent = 'Request submitted';
+        status.textContent = 'Your quote request was submitted. We’ll follow up to discuss your move. This is not a booking or a final estimate.';
+      } catch (error) {
+        showStep(current, false);
+        submit.disabled = false;
+        back.disabled = false;
+        submit.textContent = 'Try sending again';
+        status.setAttribute('role', 'alert');
+        status.textContent = 'We couldn’t confirm your submission. Your details are still here. Please try again, or use the call or email option to reach us.';
+      } finally {
+        clearTimeout(timeout);
+        sending = false;
+      }
     });
     showStep(0, false);
   });

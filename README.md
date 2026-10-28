@@ -12,11 +12,13 @@ GitHub Pages source: `main`, repository root. Custom domain: `openroadmovingands
 
 GoDaddy apex A records: 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153. `www` CNAME: `autocloserhq.github.io`. Keep mail/MX/TXT records intact.
 
-## Quote delivery: activation required
+## Quote delivery
 
-Native POST forms use FormSubmit, addressed to the owner's supplied inbox. The first completed submission triggers FormSubmit's confirmation email; the inbox owner must activate it. Keep CAPTCHA enabled. Confirm an actual inbox receipt before treating forms as production-ready. No real submission was sent during automated/local QA. Client code does not claim a successful delivery. Email and phone contact links are available as fallback.
+Both intake forms use the existing public Web3Forms access key from the owner's Texas sites. The notification recipient is controlled by that key; changing the visible contact email does not change its recipient. Do not change the shared key's recipient globally, since other sites also use it. To deliver directly to the new Open Road Gmail inbox, obtain a separate key for that inbox and update `web3forms_access_key` in `site-config.json`.
 
-The provider redirect goes to `/thank-you/` only after its processing screen. There is no CRM integration or analytics configured. No advertising trackers or browser persistence of contact information.
+Visible contact email: openroadmovingandstorage@gmail.com. AJAX submission preserves all fields, waits for HTTP success and `success: true`, prevents duplicates, times out after 30 seconds, and restores the form on errors. No-JavaScript fallback posts multipart data to Web3Forms with the thank-you redirect. The customer's email is used for replies; the Open Road notification subject/from-name distinguish the brand. No real external inquiry was sent during QA, so inbox receipt is not verified.
+
+No CRM integration or analytics is configured. No advertising trackers or browser persistence of contact information.
 
 ## Pages
 

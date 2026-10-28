@@ -10,7 +10,7 @@ class Page(HTMLParser):
   a=dict(attrs); self.tags.append((tag,a))
   if 'id' in a:self.ids.append(a['id'])
   if tag=='label' and 'for' in a:self.labels.append(a['for'])
-  if tag in ['input','select','textarea'] and a.get('type') not in ['hidden'] and a.get('name')!='_honey':self.inputs.append(a)
+  if tag in ['input','select','textarea'] and a.get('type') not in ['hidden'] and a.get('name')!='botcheck':self.inputs.append(a)
 errors=[];checks=0
 for file in ROOT.rglob('*.html'):
  p=Page();text=file.read_text();p.feed(text)
