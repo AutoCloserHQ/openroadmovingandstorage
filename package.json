@@ -1,0 +1,12 @@
+{
+  "name": "openroadmovingandstorage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Open Road Moving & Storage — GitHub Pages website",
+  "scripts": {
+    "build": "python3 scripts/build.py",
+    "check": "python3 scripts/check.py",
+    "test": "node scripts/test-form.cjs"
+  },
+  "devDependencies": {"jsdom": "30.1.2"}
+}
