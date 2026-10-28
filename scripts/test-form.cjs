@@ -6,7 +6,7 @@ for(const relative of ['index.html','get-a-quote/index.html']){
  const check=(a,b)=>{assert.equal(a,b);checks++};
  check(steps[0].hidden,false);check(steps[1].disabled,true);f.querySelector('[data-next]').click();check(steps[0].hidden,false);
  const set=(name,value)=>f.elements.namedItem(name).value=value;
- set('pickup_zip','75201');set('delivery_zip','60601');set('move_date','2026-11-20');set('home_size','2 bedrooms');
+ set('pickup_zip','75201');set('delivery_zip','60601');set('move_date',new Date(Date.now()+30*86400000).toISOString().slice(0,10));set('home_size','2 bedrooms');
  check(f.elements.namedItem('pickup_zip').validity.patternMismatch,false);set('pickup_zip','abcde');check(f.elements.namedItem('pickup_zip').validity.patternMismatch,true);set('pickup_zip','75201');
  f.querySelector('[data-next]').click();check(steps[1].hidden,false);check(steps[0].disabled,true);set('services','Moving + packing');f.querySelector('[data-next]').click();check(steps[2].hidden,false);check(f.querySelector('[data-submit]').hidden,false);
  f.querySelector('[data-back]').click();check(steps[1].hidden,false);check(f.elements.namedItem('services').value,'Moving + packing');f.querySelector('[data-next]').click();
