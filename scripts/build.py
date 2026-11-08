@@ -47,7 +47,8 @@ def page(path,title,description,body,hero=None,aside=True,noindex=False):
  doc=f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">{meta}<meta name="theme-color" content="#103e31"><link rel="icon" href="/assets/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512.png"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"><link rel="stylesheet" href="/assets/styles.css"><script src="/assets/site.js" defer></script><script type="application/ld+json">{json.dumps(schema)}</script></head><body>{header(path)}<main id="main">'''
  if hero:
   h,lead=hero
-  doc+=f'<section class="page-hero"><div class="container"><div class="breadcrumb"><a href="/">Home</a> / {escape(title)}</div><span class="eyebrow">OPEN ROAD MOVING &amp; STORAGE</span><h1>{h}</h1><p class="lead">{lead}</p></div></section>'
+  actions = f'<div class="cta-actions">{quote(label="Get my Texas pickup quote")}{call()}</div>' if path == '/service-areas/texas/' else ''
+  doc+=f'<section class="page-hero"><div class="container"><div class="breadcrumb"><a href="/">Home</a> / {escape(title)}</div><span class="eyebrow">OPEN ROAD MOVING &amp; STORAGE</span><h1>{h}</h1><p class="lead">{lead}</p>{actions}</div></section>'
  doc+=body+'</main>'+footer()+'</body></html>'
  target=ROOT/('index.html' if path=='/' else path.strip('/')+'/index.html'); target.parent.mkdir(parents=True,exist_ok=True); target.write_text(doc)
  PAGES[path]={'title':title,'description':description,'noindex':noindex}
