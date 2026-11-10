@@ -1,5 +1,33 @@
 (() => {
   'use strict';
+  function captureAttribution() {
+    const url = new URL(location.href);
+    const clean = value => (value || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 160);
+    const tags = Object.fromEntries(['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].map(k => [k, clean(url.searchParams.get(k))]));
+    const tagged = Object.values(tags).some(Boolean);
+    let ref;
+    try { ref = new URL(document.referrer); } catch {}
+    const host = ref?.hostname.toLowerCase().replace(/^www\./, '') || '';
+    const internal = host === url.hostname.replace(/^www\./, '');
+    const search = /^(?:[\w-]+\.)*bing\.com$/.test(host) ? 'bing'
+      : /^(?:www\.)?google\.(?:com|[a-z]{2}|co\.[a-z]{2}|com\.[a-z]{2})$/.test(host) ? 'google'
+      : /^(?:[\w-]+\.)*yahoo\.com$/.test(host) ? 'yahoo'
+      : host === 'duckduckgo.com' ? 'duckduckgo' : '';
+    const source = tags.utm_source || (tagged ? 'unknown' : search || (host && !internal ? host : 'direct'));
+    const medium = tags.utm_medium || (tagged ? 'campaign' : search ? 'organic' : host && !internal ? 'referral' : 'none');
+    const landing = url.origin + url.pathname;
+    const key = 'openroad_acquisition_v1';
+    const record = { ...tags, traffic_source: source, traffic_medium: medium,
+      landing_page: landing, referrer: host && !internal && /^https?:$/.test(ref.protocol) ? ref.origin : '' };
+    try {
+      const previous = JSON.parse(sessionStorage.getItem(key) || 'null');
+      if (!tagged && (!host || internal) && previous && typeof previous.landing_page === 'string' &&
+          new URL(previous.landing_page).origin === url.origin) return previous;
+      sessionStorage.setItem(key, JSON.stringify(record));
+    } catch { /* Attribution storage must not block the quote form. */ }
+    return record;
+  }
+  const acquisition = captureAttribution();
   document.documentElement.classList.add('js');
   const toggle = document.querySelector('.menu-toggle');
   const nav = document.querySelector('#primary-nav');
@@ -57,7 +85,12 @@
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 30000);
       try {
-        const payload = Object.fromEntries(new FormData(form));
+        const payload = {
+          acquisition_source: acquisition.traffic_source + ' / ' + acquisition.traffic_medium,
+          ...acquisition,
+          current_page_url: location.origin + location.pathname,
+          ...Object.fromEntries(new FormData(form))
+        };
         const response = await fetch(form.action, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
