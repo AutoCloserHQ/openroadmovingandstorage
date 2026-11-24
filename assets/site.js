@@ -1,5 +1,42 @@
 (() => {
   'use strict';
+  const measurementId = 'G-SWQYZ30J20';
+  const publicPaths = new Set(["/", "/long-distance-moving/", "/packing-and-storage/", "/service-areas/", "/service-areas/texas/", "/service-areas/midwest/", "/service-areas/northeast/", "/how-it-works/", "/moving-estimates/", "/about/", "/faqs/", "/get-a-quote/", "/privacy/", "/terms/"]);
+  const analyticsEnabled = location.hostname === 'openroadmovingandstorage.com' && publicPaths.has(location.pathname);
+  const pageLocation = location.origin + location.pathname;
+  function track(name, parameters = {}) {
+    if (!analyticsEnabled) return;
+    try {
+      window.gtag('event', name, {
+        send_to: measurementId,
+        brand: 'openroad',
+        page_location: pageLocation,
+        page_path: location.pathname,
+        ...parameters
+      });
+    } catch { /* Measurement must never interrupt a quote request. */ }
+  }
+  if (analyticsEnabled) {
+    try {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+      let pageReferrer = '';
+      try { pageReferrer = new URL(document.referrer).origin; } catch {}
+      window.gtag('js', new Date());
+      window.gtag('config', measurementId, {
+        send_page_view: false,
+        page_location: pageLocation,
+        page_referrer: pageReferrer,
+        allow_google_signals: false,
+        allow_ad_personalization_signals: false
+      });
+      track('page_view', { page_referrer: pageReferrer });
+      const tag = document.createElement('script');
+      tag.async = true;
+      tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + measurementId;
+      document.head.appendChild(tag);
+    } catch { /* The site and its forms work when analytics is unavailable. */ }
+  }
   function captureAttribution() {
     const url = new URL(location.href);
     const clean = value => (value || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 160);
@@ -41,6 +78,15 @@
   const today = `${localToday.getFullYear()}-${String(localToday.getMonth()+1).padStart(2,'0')}-${String(localToday.getDate()).padStart(2,'0')}`;
   document.querySelectorAll('input[type="date"]').forEach(input => { input.min = today; });
   document.querySelectorAll('.quote-form').forEach(form => {
+    const formId = location.pathname === '/' ? 'homepage_quote' : 'contact_quote';
+    let started = false;
+    function recordStart(event) {
+      if (started || !event.isTrusted || !event.target.matches('input:not([type="hidden"]):not([name="botcheck"]),select,textarea')) return;
+      started = true;
+      track('openroad_form_start', { form_id: formId });
+    }
+    form.addEventListener('input', recordStart);
+    form.addEventListener('change', recordStart);
     const sections = [...form.querySelectorAll('fieldset[data-step]')];
     let current = 0;
     const indicator = form.querySelector('.form-progress');
@@ -84,6 +130,7 @@
       status.textContent = 'Sending your quote request…';
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 30000);
+      let failureCategory = 'network';
       try {
         const payload = {
           acquisition_source: acquisition.traffic_source + ' / ' + acquisition.traffic_medium,
@@ -97,14 +144,17 @@
           body: JSON.stringify(payload),
           signal: controller.signal
         });
+        failureCategory = response.ok ? 'response' : 'http';
         const result = await response.json();
         if (!response.ok || result.success !== true) throw new Error('Submission was not confirmed');
         form.dataset.submitted = 'true';
+        track('generate_lead', { form_id: formId });
         sections.forEach(section => { section.disabled = true; });
         back.hidden = true;
         submit.textContent = 'Request submitted';
         status.textContent = 'Your quote request was submitted. We’ll follow up to discuss your move. This is not a booking or a final estimate.';
       } catch (error) {
+        track('openroad_form_error', { form_id: formId, error_category: error.name === 'AbortError' ? 'timeout' : failureCategory });
         showStep(current, false);
         submit.disabled = false;
         back.disabled = false;
